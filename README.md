@@ -1,7 +1,8 @@
 # supervizio — Nix flake
 
-> Written by supervizio's release pipeline. It holds no flake until the first
-> supervizio release published since it was created; the steps below work from then on.
+> Mirrored from https://supervizio.github.io/agent/channels/ by `.github/workflows/sync.yml`.
+> It holds no flake until supervizio publishes a release validated for this
+> channel; the steps below work from then on.
 
 The [supervizio](https://supervizio.github.io/agent/) process supervisor and
 OpenTelemetry collector agent for Nix and NixOS: a package built from the
