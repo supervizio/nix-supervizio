@@ -1,0 +1,46 @@
+[Unit]
+Description=Supervizio Process Supervisor
+Documentation=https://github.com/supervizio/agent
+After=network.target
+Wants=network.target
+
+[Service]
+Type=notify
+ExecStartPre=/bin/mkdir -p /etc/supervizio
+ExecStartPre=/bin/chmod 755 /etc/supervizio
+ExecStart=/usr/local/bin/supervizio --config /etc/supervizio/config.yaml
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=30
+
+# Run as root for PID1 supervisor capabilities
+User=root
+Group=root
+
+# Security hardening
+NoNewPrivileges=false
+ProtectSystem=strict
+ProtectHome=read-only
+ReadWritePaths=/var/log/supervizio /var/run/supervizio /etc/supervizio
+RuntimeDirectory=supervizio
+LogsDirectory=supervizio
+
+# cgroup delegation: hand supervizio this unit's cgroup subtree so each service
+# with limits.memory_max / cpu_quota / pids_max gets its own child group
+# (supervizio.service/svc-<pid>). Without it the limits are not applied.
+# DelegateSubgroup= (systemd >= 254) starts supervizio in the "supervisor" leaf,
+# leaving the unit's group an inner node controllers can be enabled on; an older
+# systemd ignores the key with a warning and supervizio moves itself there.
+Delegate=yes
+DelegateSubgroup=supervisor
+
+# Resource limits
+LimitNOFILE=65536
+LimitNPROC=4096
+
+# Environment
+Environment=SUPERVIZIO_LOG_LEVEL=info
+
+[Install]
+WantedBy=multi-user.target

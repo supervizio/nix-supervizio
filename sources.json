@@ -1,0 +1,16 @@
+{
+  "binaries": {
+    "aarch64-linux": {
+      "hash": "sha256-COJ1ZGthHx5IbCKwm6Zxl6/6BIesxmTIsU5mVE6IM4Y=",
+      "name": "supervizio-0.6.0-linux-arm64-musl",
+      "url": "https://supervizio.github.io/agent/dist/v0.6.0/supervizio-linux-arm64-musl"
+    },
+    "x86_64-linux": {
+      "hash": "sha256-I6CGqzoL/uEkOyuTsTNAyJ5QrRcw1gp1ocPNv9w7Ncw=",
+      "name": "supervizio-0.6.0-linux-amd64-musl",
+      "url": "https://supervizio.github.io/agent/dist/v0.6.0/supervizio-linux-amd64-musl"
+    }
+  },
+  "tag": "v0.6.0",
+  "version": "0.6.0"
+}

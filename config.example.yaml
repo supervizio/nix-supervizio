@@ -1,0 +1,118 @@
+# =============================================================================
+# supervizio example configuration
+# =============================================================================
+# Copy this file to /etc/supervizio/config.yaml and customize for your needs.
+# Documentation: https://github.com/supervizio/agent
+# =============================================================================
+version: "1"
+
+# Logging configuration — see docs/logging.md for the full contract.
+logging:
+  base_dir: /var/log/supervizio
+  defaults:
+    # Where a captured stream is written: file | stdout | both | none.
+    # Unset means "decide from the environment": stdout when the agent is PID 1
+    # or detects a container (that is where the platform collects from, and a
+    # file inside a container dies with it), file otherwise.
+    sink: file
+    # `timestamp` is the switch and it is OFF by default: Consul, Nomad, Vault
+    # and Traefik all stamp their own lines, to the millisecond, and the agent's
+    # second-resolution stamp in front of one of those makes the line worse.
+    # Before this release the prefix was always on — set this to true to keep
+    # the old shape.
+    timestamp: false
+    # `timestamp_format` is only the format, never a switch: declare it here and
+    # enable the prefix on the services that need it.
+    timestamp_format: iso8601
+    rotation:
+      max_size: "10MB"       # rotate past this size (counter seeded at open)
+      max_files: 5           # keep this many rotated backups
+      max_age: "14d"         # also drop backups older than this
+      compress: true         # gzip backups past .1, which stays readable
+
+# Services to supervise
+services:
+  # Example: Simple service
+  - name: my-app
+    command: /usr/local/bin/my-app
+    args:
+      - "--config=/etc/my-app/config.yaml"
+    working_dir: /var/lib/my-app
+    # Environment variables
+    env:
+      NODE_ENV: production
+      LOG_LEVEL: info
+    # Restart policy: always, on-failure, never, unless-stopped
+    restart:
+      policy: on-failure
+      max_retries: 5
+      delay: 5s
+      delay_max: 60s
+    # Graceful shutdown (systemd KillSignal= / TimeoutStopSec=).
+    # stop_signal defaults to SIGTERM; stop_timeout to 30s before SIGKILL.
+    stop_signal: SIGTERM
+    stop_timeout: 20s
+    # sd_notify readiness (systemd Type=notify): the service is "started" only
+    # after it sends READY=1 on $NOTIFY_SOCKET, within start_period.
+    notify: true
+    start_period: 30s
+    # Per-service resource limits (honoured where the platform supports them;
+    # a config requesting an unsupported feature is rejected at startup).
+    limits:
+      # setrlimit (systemd LimitNOFILE=, LimitCORE=, …)
+      rlimits:
+        nofile: { soft: 4096, hard: 8192 }
+        core: { soft: 0, hard: 0 }
+      umask: "0027"            # systemd UMask=
+      nice: -5                 # systemd Nice=
+      oom_score_adjust: -100   # systemd OOMScoreAdjust=
+      # cgroup v2 controllers (Linux; systemd MemoryMax=/CPUQuota=/TasksMax=)
+      memory_max: 536870912    # 512 MiB
+      cpu_quota: 50000         # 50% of one CPU (µs per cpu_period)
+      cpu_period: 100000
+      pids_max: 256
+    # Health probe (optional)
+    listeners:
+      - name: http
+        port: 8080
+        protocol: tcp
+        probe:
+          type: http
+          path: /health
+          interval: 30s
+          timeout: 5s
+          failure_threshold: 3
+
+  # Example: a service whose two streams need different budgets. Vault writes
+  # roughly ten times more to stderr than to stdout; Consul and Nomad are the
+  # other way round, by a factor of hundreds. One threshold for both streams is
+  # therefore always wrong for one of them.
+  - name: vault
+    command: /usr/bin/vault
+    args: ["server", "-config=/etc/vault.d/vault.hcl"]
+    logging:
+      stderr:
+        rotation: { max_size: "50MB", max_files: 10 }
+      stdout:
+        rotation: { max_size: "5MB", max_files: 2 }
+
+  # Example: a service whose output the platform already captures. Traefik under
+  # Nomad is recorded by the Docker json-file driver and by nomad alloc logs; a
+  # third copy written here would be a third retention policy to reconcile.
+  - name: traefik
+    command: /usr/local/bin/traefik
+    logging:
+      sink: none
+
+  # Example: Background worker that starts only after my-app (systemd After=).
+  # A home-made script stamps nothing of its own, so this one asks the agent
+  # for the prefix — the case the switch exists for.
+  - name: worker
+    command: /usr/local/bin/worker
+    depends_on:
+      - my-app
+    logging:
+      timestamp: true
+    restart:
+      policy: always
+      delay: 1s
