@@ -1,9 +1,5 @@
 # supervizio — Nix flake
 
-> Mirrored from https://supervizio.github.io/agent/channels/ by `.github/workflows/sync.yml`.
-> It holds no flake until supervizio publishes a release validated for this
-> channel; the steps below work from then on.
-
 The [supervizio](https://supervizio.github.io/agent/) process supervisor and
 OpenTelemetry collector agent for Nix and NixOS: a package built from the
 statically linked binary each release publishes (`x86_64-linux`,
@@ -59,17 +55,23 @@ The service is the unit every supervizio package installs (`Type=notify`,
 
 ## Updating
 
-`nix flake update supervizio`. `sources.json` names the release's binaries at
+`nix flake update supervizio`, or pin a release: `github:supervizio/nix-supervizio/<tag>`
+(every release this flake carried is tagged). `sources.json` names the release's binaries at
 `https://supervizio.github.io/agent/dist/<tag>/`, which keeps the binaries of
 the three newest releases: a lock file older than that no longer builds on a
 machine whose store does not already hold the binary.
 
 ## Where this comes from
 
-Nothing here is edited by hand. supervizio's release pipeline writes
-`sources.json` (version, URLs, hashes) and the files beside it when it
-publishes a release, and a release is published only after its end-to-end
-validation has built this flake's package and module against that release's
-own binary and run it on NixOS under systemd — probed, supervised, and removed
-by switching to a configuration without it. Report problems in this
-repository's issues.
+Only `.github/`, this README and the LICENSE are maintained in this
+repository, through pull requests. Everything else is written by
+supervizio/agent's `deploy-repo.yml`, which serves at
+<https://supervizio.github.io/agent/channels/> the flake of the newest final
+release whose end-to-end validation built this flake's package and module
+against that release's own binary and ran it on NixOS under systemd (x86_64
+and aarch64): probed, supervised, and removed by switching to a configuration
+without it. Never a prerelease. Each time it deploys, it writes that flake
+here as one commit on a `sync/` branch, opens a pull request so that this
+repository's `post-commit` gate judges the commit, fast-forwards `main` to it
+once the gate has passed, and tags it with the release. Report problems in
+this repository's issues.
